@@ -42,8 +42,8 @@ gen taskfile {
 			"material-icon-theme.folders.associations" = {
 				chain = "contract"
 			}
-			"go.lintTool"  = "golangci-lint"
-			"go.lintFlags" = ["--fast"]
+			"go.lintTool"    = "golangci-lint"
+			"go.lintFlags"   = ["--fast"]
 			"buf.binaryPath" = "${file("task").TOOLS_DIR}/bin/buf"
 			"emeraldwalk.runonsave" = {
 				commands = [

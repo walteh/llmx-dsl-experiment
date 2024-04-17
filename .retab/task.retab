@@ -2,9 +2,6 @@
 ROOT      = "."
 TOOLS_DIR = "tools"
 
-// 
-// all_retab_gens = allof("gen")
-
 gen taskfile {
 	schema = "https://taskfile.dev/schema.json"
 	path   = "taskfile.yaml"
@@ -15,7 +12,7 @@ gen taskfile {
 }
 
 task tools {
-	sources   = []
+	sources   = ["./tools/**/*", { exclude = "./tools/bin/*" }]
 	generates = ["./tools/bin/*"]
 	cmds = [
 		"go generate ./tools"
@@ -35,7 +32,11 @@ task update {
 	]
 }
 
-BUF_OUTPUT     = "${file("buf").gen.buf.resolved_output}"
+task generate {
+	deps = ["retab-gen", "buf-gen", "mockery-gen"]
+}
+
+BUF_OUTPUT = "${file("buf").gen.buf.resolved_output}"
 
 task buf-gen {
 	deps      = ["tools", "retab-gen"]
@@ -61,7 +62,6 @@ task mockery-gen {
 		"find gen/mockery -type f -mmin +5 -delete"
 	]
 }
-
 
 task retab-gen {
 	run       = "when_changed"

@@ -6,7 +6,9 @@
 version: 3
 tasks:
     tools:
-        sources: []
+        sources:
+            - ./tools/**/*
+            - exclude: ./tools/bin/*
         generates:
             - ./tools/bin/*
         cmds:
@@ -19,6 +21,11 @@ tasks:
             - upgrade
         cmds:
             - go get -u -v ./... && go mod tidy
+    generate:
+        deps:
+            - retab-gen
+            - buf-gen
+            - mockery-gen
     buf-gen:
         deps:
             - tools
