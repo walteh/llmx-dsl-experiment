@@ -1,0 +1,115 @@
+
+ROOT      = "."
+TOOLS_DIR = "tools"
+
+// 
+// all_retab_gens = allof("gen")
+
+gen taskfile {
+	schema = "https://taskfile.dev/schema.json"
+	path   = "taskfile.yaml"
+	data = {
+		version = 3
+		tasks   = allof("task")
+	}
+}
+
+task tools {
+	sources   = []
+	generates = ["./tools/bin/*"]
+	cmds = [
+		"go generate ./tools"
+	]
+}
+
+task tidy {
+	cmds = [
+		"go mod tidy",
+	]
+}
+
+task update {
+	aliases = ["upgrade"]
+	cmds = [
+		"go get -u -v ./... && go mod tidy",
+	]
+}
+
+BUF_OUTPUT     = "${file("buf").gen.buf.resolved_output}"
+
+task buf-gen {
+	deps      = ["tools", "retab-gen"]
+	generates = ["gen/buf/**/*"]
+	sources = merge(
+		[for p in file("buf").all_buf_gen_yamls : p.resolved_output],
+		["proto/**/*.proto"]
+	)
+	cmds = merge(
+		[for p in file("buf").all_buf_gen_yamls : "tools/bin/buf generate --template=${p.resolved_output} --path=${trimsuffix(p.resolved_output, "/buf.gen.yaml")}"],
+		["find gen/buf/** -type f -mmin +5 -delete"]
+	)
+}
+
+MOCKERY_OUTPUT = "${file("mockery").gen.mockery.resolved_output}"
+
+task mockery-gen {
+	deps      = ["tools", "retab-gen"]
+	generates = ["gen/mockery/**/*"]
+	sources   = merge(file("mockery").local_go_files_to_watch_for_mockery, ["${MOCKERY_OUTPUT}", "tools/bin/mockery"])
+	cmds = [
+		"tools/bin/mockery --dir gen/mockery --config ${MOCKERY_OUTPUT} ",
+		"find gen/mockery -type f -mmin +5 -delete"
+	]
+}
+
+
+task retab-gen {
+	run       = "when_changed"
+	deps      = ["tools"]
+	generates = []
+	sources   = [".retab/*.retab", "tools/bin/retab"]
+	cmds = [
+		"tools/bin/retab fmt",
+		"tools/bin/retab gen"
+	]
+}
+
+task lint {
+	deps = ["tools", "retab-gen"]
+	sources = [
+		"**/*.go",
+		{ exclude = "${TOOLS_DIR}/**/*" },
+		"tools/bin/golangci-lint",
+	]
+	cmds = [
+		"tools/bin/golangci-lint run  --config ${file("golangci").gen.golangci.resolved_output} --fix"
+	]
+}
+
+task test {
+	deps = ["tools"]
+	dir  = ROOT
+	sources = [
+		"**/*.go",
+		{ exclude = "**/*" },
+		"tools/bin/gotestsum"
+	]
+	preconditions = ["which go"]
+	cmds = [
+		"tools/bin/gotestsum -- -v -coverprofile=coverage.out -coverpkg=./... -e all"
+	]
+}
+
+task test-ci {
+	deps = ["tools"]
+	dir  = ROOT
+	sources = [
+		"**/*.go",
+		{ exclude = "**/*" },
+		"tools/bin/gotestsum"
+	]
+	preconditions = ["which go"]
+	cmds = [
+		"tools/bin/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... -e all"
+	]
+}

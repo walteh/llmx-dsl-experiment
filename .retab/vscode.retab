@@ -1,0 +1,63 @@
+
+func format {
+	params = [strd]
+	result = replace(replace(replace(strd, ".", "\\."), "/", "\\/"), "*", ".*")
+}
+
+gen taskfile {
+	schema = ""
+	path   = "../.vscode/llmx.code-workspace"
+	data = {
+		folders = [
+			{
+				path = "../"
+			}
+		]
+
+		settings = {
+
+			"editor.formatOnSave" = true,
+			// "explorer.fileNesting.patterns" = {
+			// 	"task" : "*.yaml,*.yml,buf*",
+			// 	"go.mod" : "go.*",
+			// }
+			"editor.formatOnSaveTimeout" = 5000
+			"editor.formatOnSaveMode"    = "file"
+			"[proto]" = {
+				"editor.formatOnSave" = false
+			}
+			"go.testFlags" = [
+				"-count=1",
+				// test timeout at 89s
+				"-timeout=90s"
+			]
+			gopls = {
+				"ui.semanticTokens" = true
+				"directoryFilters"  = ["-tools"]
+			}
+
+			"files.associations" = {
+				"*.retab" = "hcl"
+			}
+			"material-icon-theme.folders.associations" = {
+				chain = "contract"
+			}
+			"go.lintTool"  = "golangci-lint"
+			"go.lintFlags" = ["--fast"]
+			"buf.binaryPath" = "${file("task").TOOLS_DIR}/bin/buf"
+			"emeraldwalk.runonsave" = {
+				commands = [
+					{
+						match = "\\.retab$"
+						cmd   = "./${file("task").TOOLS_DIR}/bin/task retab-gen"
+					},
+					{
+						match = "${join("|", [for _, z in file("mockery").local_go_files_to_watch_for_mockery : format(z)])}$"
+						cmd   = "./${file("task").TOOLS_DIR}/bin/task  mockery-gen"
+					}
+				]
+			}
+		}
+	}
+}
+

@@ -1,0 +1,73 @@
+
+
+TOOLS_DIR = "tools"
+
+OUT_DIR = "gen/buf"
+
+all_buf_gen_yamls = allof("gen", { key = ["path"], regex = "^.*buf.gen.yaml$" })
+
+gen buf {
+	schema = "https://json.schemastore.org/buf.json"
+	path   = "proto/buf.yaml"
+	data = {
+		version = "v1"
+		breaking = {
+			use = ["FILE"]
+		}
+		deps = [
+			"buf.build/googleapis/googleapis",
+		]
+		lint = {
+			use = ["DEFAULT"]
+		}
+		build = {
+			excludes = ["vendor"]
+		}
+	}
+}
+
+gen buf-work {
+
+	schema = "https://json.schemastore.org/buf.work.json"
+	path   = "buf.work.yaml"
+	data = {
+		version = "v1"
+		directories = [
+			"./proto",
+		]
+	}
+}
+
+gen buf-gen-core {
+	schema = "https://json.schemastore.org/buf.gen.json"
+	path   = "proto/core/buf.gen.yaml"
+	data = {
+		version = "v1"
+		managed = {
+			enabled = true
+			go_package_prefix = {
+				default = "${GO_MODULE_PACKAGE}/gen/buf/go"
+				except  = ["buf.build/googleapis/googleapis"]
+			}
+		}
+		plugins = [
+			plugin.protoc-gen-go,
+			plugin.protoc-gen-grpc-go,
+		]
+	}
+}
+
+plugin "protoc-gen-go" {
+	plugin = "buf.build/protocolbuffers/go:v1.32.0"
+	out    = "${OUT_DIR}/go"
+	opt    = ["paths=source_relative"]
+}
+
+plugin "protoc-gen-grpc-go" {
+	plugin = "buf.build/grpc/go:v1.3.0"
+	out    = "${OUT_DIR}/go"
+	opt = [
+		"paths=source_relative",
+		"require_unimplemented_servers=true" // the default
+	]
+}
